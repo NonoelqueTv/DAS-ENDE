@@ -1,1 +1,0 @@
-Poné acá los archivos del modelo: model.json, metadata.json y weights.bin
