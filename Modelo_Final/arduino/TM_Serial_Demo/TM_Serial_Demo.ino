@@ -1,19 +1,28 @@
-// TM_Serial_Demo.ino - Arduino ejemplo simple
-// Lee líneas como "CLASE:0", "CLASE:1" o "CLASE:2" y enciende LEDs.
-// Ajustá pines/acciones a tu proyecto.
+// TM_Serial_Demo + ISD1820
+// Al inicio graba 5 segundos.
+// Luego reproduce si llega CLASE:0, CLASE:1 o CLASE:2.
 
-#define LED0 3
-#define LED1 5
-#define LED2 6
+#define pinREC  6   // Pin REC del ISD1820
+#define pinPLAY 7   // Pin PLAY del ISD1820
 
 String inLine;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED0, OUTPUT);
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  apagarTodo();
+
+  pinMode(pinREC, OUTPUT);
+  pinMode(pinPLAY, OUTPUT);
+
+  // Asegurar que arranca apagado
+  digitalWrite(pinREC, LOW);
+  digitalWrite(pinPLAY, LOW);
+
+  // --- GRABAR AL INICIO ---
+  Serial.println("Grabando 5 segundos...");
+  digitalWrite(pinREC, HIGH);
+  delay(5000);
+  digitalWrite(pinREC, LOW);
+  Serial.println("Grabación finalizada.");
 }
 
 void loop() {
@@ -33,14 +42,15 @@ void manejarComando(const String& s) {
 }
 
 void aplicarClase(int c) {
-  apagarTodo();
-  if (c == 0) digitalWrite(LED0, HIGH);
-  else if (c == 1) digitalWrite(LED1, HIGH);
-  else if (c == 2) digitalWrite(LED2, HIGH);
+  // Si la clase es 0, 1 o 2 → reproducir
+  if (c == 0 || c == 1 || c == 2) {
+    reproducirAudio();
+  }
 }
 
-void apagarTodo() {
-  digitalWrite(LED0, LOW);
-  digitalWrite(LED1, LOW);
-  digitalWrite(LED2, LOW);
+void reproducirAudio() {
+  // Pulso PLAY corto para reproducir una vez
+  digitalWrite(pinPLAY, HIGH);
+  delay(200);
+  digitalWrite(pinPLAY, LOW);
 }
