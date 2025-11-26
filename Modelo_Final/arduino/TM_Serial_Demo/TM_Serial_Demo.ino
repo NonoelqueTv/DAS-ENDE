@@ -1,74 +1,39 @@
-<<<<<<< HEAD
-// TM_Serial_Demo + ISD1820
-// Al inicio graba 5 segundos.
-// Luego reproduce si llega CLASE:0, CLASE:1 o CLASE:2.
+// CONTROL TM + ISD1820 + PORTÓN
+// Requerimientos aplicados según pedido
 
-#define pinREC  6   // Pin REC del ISD1820
-#define pinPLAY 7   // Pin PLAY del ISD1820
-=======
-// --------------------------
-// CONFIGURACIÓN DE PINES
-// --------------------------
-#define REC_PIN 6
-#define PLAY_PIN 7
+#define REC_PIN   6
+#define PLAY_PIN  7
 
-#define MOTOR_A 11   // izquierda
-#define MOTOR_B 10   // derecha
->>>>>>> 13bbf876be0a0f5f73fe2c92850b9101f98d83f5
+#define MOTOR_D   10   // derecha
+#define MOTOR_I   11   // izquierda
 
 String inLine;
 
-// Temporizador de ingreso (30 s)
-unsigned long startTime;
-bool ventanaActiva = true;
+// Estado de registro
+bool usuarioRegistrado = false;
 
 void setup() {
   Serial.begin(115200);
 
-<<<<<<< HEAD
-  pinMode(pinREC, OUTPUT);
-  pinMode(pinPLAY, OUTPUT);
-
-  // Asegurar que arranca apagado
-  digitalWrite(pinREC, LOW);
-  digitalWrite(pinPLAY, LOW);
-
-  // --- GRABAR AL INICIO ---
-  Serial.println("Grabando 5 segundos...");
-  digitalWrite(pinREC, HIGH);
-  delay(5000);
-  digitalWrite(pinREC, LOW);
-  Serial.println("Grabación finalizada.");
-=======
   pinMode(REC_PIN, OUTPUT);
   pinMode(PLAY_PIN, OUTPUT);
 
-  pinMode(MOTOR_A, OUTPUT);
-  pinMode(MOTOR_B, OUTPUT);
+  pinMode(MOTOR_D, OUTPUT);
+  pinMode(MOTOR_I, OUTPUT);
 
-  apagarMotor();
   digitalWrite(REC_PIN, LOW);
   digitalWrite(PLAY_PIN, LOW);
+  apagarMotor();
 
-  startTime = millis();
-
-  // -----------------------------------------
-  // PRIMEROS 5 SEGUNDOS: GRABACIÓN DEL ISD1820
-  // -----------------------------------------
+  // Grabación inicial 5 s
+  Serial.println("Grabando 5 segundos...");
   digitalWrite(REC_PIN, HIGH);
   delay(5000);
   digitalWrite(REC_PIN, LOW);
->>>>>>> 13bbf876be0a0f5f73fe2c92850b9101f98d83f5
+  Serial.println("Grabación finalizada.");
 }
 
 void loop() {
-
-  // Actualizar ventana de tiempo (30 segundos)
-  if (millis() - startTime > 30000) {
-    ventanaActiva = false;
-  }
-
-  // Leer comandos del serial
   while (Serial.available()) {
     char c = Serial.read();
     if (c == '\n') {
@@ -80,87 +45,64 @@ void loop() {
   }
 }
 
-// -----------------------------------------
-// PROCESA LÍNEAS COMO "CLASE:0" "CLASE:1"
-// -----------------------------------------
 void manejarComando(const String& s) {
   if (s.startsWith("CLASE:")) {
     int clase = s.substring(6).toInt();
     aplicarClase(clase);
-    Serial.print("OK "); Serial.println(clase);
+    Serial.print("OK ");
+    Serial.println(clase);
   }
 }
 
-<<<<<<< HEAD
 void aplicarClase(int c) {
-  // Si la clase es 0, 1 o 2 → reproducir
-  if (c == 0 || c == 1 || c == 2) {
+
+  // --- CLASE 3: solo acciona ISD1820 ---
+  if (c == 3) {
     reproducirAudio();
+    return;
   }
+
+  // --- CLASES 0,1,2 ---
+  if (c == 0 || c == 1 || c == 2) {
+
+    // Si ya usaron el portón antes
+    if (usuarioRegistrado) {
+      Serial.println("Usuario ya registrado");
+      reproducirAudio();
+      return;
+    }
+
+    // Primera vez: abrir y cerrar portón
+    usuarioRegistrado = true;
+    moverPorton();
+  }
+}
+
+void moverPorton() {
+
+  // 2.5 s a la derecha
+  digitalWrite(MOTOR_D, HIGH);
+  digitalWrite(MOTOR_I, LOW);
+  delay(2500);
+
+  apagarMotor();
+  delay(4000);
+
+  // 2.5 s a la izquierda
+  digitalWrite(MOTOR_D, LOW);
+  digitalWrite(MOTOR_I, HIGH);
+  delay(2500);
+
+  apagarMotor();
 }
 
 void reproducirAudio() {
-  // Pulso PLAY corto para reproducir una vez
-  digitalWrite(pinPLAY, HIGH);
-  delay(200);
-  digitalWrite(pinPLAY, LOW);
-=======
-// -----------------------------------------
-// LÓGICA SEGÚN LA CLASE Y TEMPORIZADOR
-// -----------------------------------------
-void aplicarClase(int clase) {
-
-  if (ventanaActiva) {
-
-    // Solo abrir para Vale (0), Benja (1), Alvaro (2)
-    if (clase == 0 || clase == 1 || clase == 2) {
-      abrirPorton();
-    }
-
-    // Si clase == 3 (NADA), no hace nada
-  }
-  else {
-    // Ventana cerrada: reproducir audio SIEMPRE
-    reproducirAdvertencia();
-  }
-}
-
-// -----------------------------------------
-// FUNCIÓN: ABRIR - ESPERAR - CERRAR PORTÓN
-// -----------------------------------------
-void abrirPorton() {
-
-  // Abrir (izquierda)
-  digitalWrite(MOTOR_A, HIGH);
-  digitalWrite(MOTOR_B, LOW);
-  delay(5000);
-
-  apagarMotor();
-  delay(3000);
-
-  // Cerrar (derecha)
-  digitalWrite(MOTOR_A, LOW);
-  digitalWrite(MOTOR_B, HIGH);
-  delay(5000);
-
-  apagarMotor();
->>>>>>> 13bbf876be0a0f5f73fe2c92850b9101f98d83f5
-}
-
-// -----------------------------------------
-// FUNCIÓN: REPRODUCIR MENSAJE DENEGADO
-// -----------------------------------------
-void reproducirAdvertencia() {
   digitalWrite(PLAY_PIN, HIGH);
-  delay(500);   
+  delay(200);
   digitalWrite(PLAY_PIN, LOW);
-  delay(2000);  // para que no lo repita muy rápido
 }
 
-// -----------------------------------------
-// SEGURIDAD: APAGAR EL MOTOR
-// -----------------------------------------
 void apagarMotor() {
-  digitalWrite(MOTOR_A, LOW);
-  digitalWrite(MOTOR_B, LOW);
+  digitalWrite(MOTOR_D, LOW);
+  digitalWrite(MOTOR_I, LOW);
 }
