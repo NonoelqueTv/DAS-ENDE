@@ -1,13 +1,20 @@
 // Modelo_Final\js\app.js
-// TM + Arduino (Local) - app.js (FIX)
-// Requiere abrir con Live Server y tener ./tm_model/{model.json,metadata.json,weights.bin}
+// TM + Arduino (Local) - app.js (VERSIÓN 4 CLASES)
 
 const MODEL_URL    = "./tm_model/model.json";
 const METADATA_URL = "./tm_model/metadata.json";
 
+// CONFIGURACIÓN DE UMBRALES (4 Clases)
+// El orden debe coincidir con el panel de Teachable Machine:
+// [0] = Vale
+// [1] = NADA (Antes era Benja) -> Activa Audio
+// [2] = Avaro (Alvaro)
+// [3] = Benja (Antes era NADA)
+const classThresholds = [0.98, 0.98, 0.98, 0.98];
+
 let model, webcam, maxPredictions, labelContainer;
 let port, writer, lastClass = -1;
-let running = false; // evita múltiples inits
+let running = false; 
 
 async function connectSerial() {
   try {
@@ -22,27 +29,23 @@ async function connectSerial() {
 }
 
 async function init() {
-  if (running) return;        // no iniciar dos veces
+  if (running) return;
   running = true;
 
   try {
-    // Verificación previa (ayuda a diagnosticar 404)
     const [r1, r2] = await Promise.all([fetch(MODEL_URL), fetch(METADATA_URL)]);
-    console.log("model.json", r1.status, "metadata.json", r2.status);
     if (!r1.ok || !r2.ok) throw new Error("Faltan archivos del modelo en ./tm_model/");
 
     model = await tmImage.load(MODEL_URL, METADATA_URL);
     maxPredictions = model.getTotalClasses();
 
-    // Webcam
     webcam = new tmImage.Webcam(320, 240, true);
     await webcam.setup();
     await webcam.play();
     const wc = document.getElementById("webcam-container");
-    wc.innerHTML = "";                   // limpia si había algo
+    wc.innerHTML = "";
     wc.appendChild(webcam.canvas);
 
-    // Etiquetas
     labelContainer = document.getElementById("label-container");
     labelContainer.innerHTML = "";
     for (let i = 0; i < maxPredictions; i++) {
@@ -51,72 +54,42 @@ async function init() {
 
     window.requestAnimationFrame(loop);
   } catch (e) {
-    console.error("Error cargando el modelo:", e);
-    alert("No se pudo cargar el modelo. ¿Copiaste model.json, metadata.json y weights.bin a ./tm_model/?");
+    console.error("Error:", e);
+    alert("Error cargando modelo. Revisa la consola.");
     running = false;
   }
 }
 
-  async function loop() {
-    webcam.update();
-    await predict();
-    window.requestAnimationFrame(loop);
+async function loop() {
+  webcam.update();
+  await predict();
+  window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+  const pred = await model.predict(webcam.canvas);
+  let bestIdx = 0, bestProb = 0;
+
+  for (let i = 0; i < pred.length; i++) {
+    const p = pred[i];
+    labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
+    
+    if (p.probability > bestProb) { 
+        bestProb = p.probability; 
+        bestIdx = i; 
+    }
   }
 
-  async function predict() {
-    const pred = await model.predict(webcam.canvas); // Array {className, probability}
-    let bestIdx = 0, bestProb = 0;
-
-    for (let i = 0; i < pred.length; i++) {
-      const p = pred[i];
-      labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
-      if (p.probability > bestProb) { bestProb = p.probability; bestIdx = i; }
+  // LOGICA DE ENVIO
+  if (bestProb > classThresholds[bestIdx] && bestIdx !== lastClass) {
+    lastClass = bestIdx;
+    
+    if (writer) {
+      const enc = new TextEncoder();
+      await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
+      console.log(`Enviado: ${pred[bestIdx].className} (Clase ${bestIdx}) - Certeza: ${(bestProb*100).toFixed(1)}%`);
     }
-
-    if (bestProb > 0.80 && bestIdx !== lastClass) {
-      lastClass = bestIdx;
-      if (writer) {
-        const enc = new TextEncoder();
-        await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
-      }
-    }
-
-    // 1. CONFIGURACIÓN DE UMBRALES (Ajusta estos valores según tus pruebas)
-  // El orden debe coincidir con tus etiquetas: ["Vale", "Benja", "Alvaro", "NADA"]
-  // 0.85 = 85% de certeza necesaria para activar
-  const classThresholds = [0.99, 0.99, 0.99, 0.99];
-  async function predict() {
-    const pred = await model.predict(webcam.canvas);
-    let bestIdx = 0, bestProb = 0;
-
-    for (let i = 0; i < pred.length; i++) {
-      const p = pred[i];
-      // Actualiza el texto en pantalla
-      labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
-      
-      // Buscamos la probabilidad más alta
-      if (p.probability > bestProb) { 
-          bestProb = p.probability; 
-          bestIdx = i; 
-      }
-    }
-
-    // 2. LÓGICA DE DETECCIÓN MEJORADA
-    // Verificamos si la probabilidad supera el umbral ESPECÍFICO de esa clase
-    // y si la clase es diferente a la última enviada.
-    if (bestProb > classThresholds[bestIdx] && bestIdx !== lastClass) {
-      
-      lastClass = bestIdx;
-      
-      if (writer) {
-        const enc = new TextEncoder();
-        // Enviamos el comando al Arduino
-        await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
-        console.log(`Enviado Clase ${bestIdx} (${pred[bestIdx].className}) con certeza: ${bestProb}`);
-      }
-    }
-
-}
+  }
 }
 
 document.getElementById("btnStart").onclick = init;

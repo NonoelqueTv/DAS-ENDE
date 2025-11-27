@@ -1,91 +1,199 @@
+/* Importamos fuente moderna si no la pusiste en el HTML */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
 :root {
-  --bg: #f5f5f5;
-  --card-bg: #ffffff;
-  --border: #e0e0e0;
-  --text: #222;
-  --muted: #666;
-  --primary: #150ba3;
+  /* Paleta de Colores Moderna (Violeta Tecnológico) */
+  --primary: #6c5ce7;
+  --primary-dark: #4834d4;
+  --accent: #a29bfe;
+  
+  --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --card-bg: rgba(255, 255, 255, 0.9); /* Casi opaco para mejor lectura */
+  
+  --text-main: #2d3436;
+  --text-muted: #636e72;
+  
+  --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 20px 50px rgba(108, 92, 231, 0.2);
+  
+  --radius: 20px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
-  font-family: "Segoe UI", Roboto, sans-serif;
-  color: var(--text);
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif; /* Tipografía limpia */
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
 }
 
+/* --- HEADER CON ESTILO --- */
 header {
   text-align: center;
-  padding: 24px 16px;
-  background: var(--primary);
-  color: #fff;
+  padding: 40px 20px 20px;
+  background: transparent;
 }
 
 header h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, var(--primary-dark), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; /* Texto con degradado */
+  letter-spacing: -1px;
 }
 
+header p {
+  color: var(--text-muted);
+  font-weight: 300;
+  margin-top: 8px;
+  font-size: 1.1rem;
+}
+
+/* --- BOTONES MODERNOS --- */
 nav {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
 button {
   background: var(--primary);
   border: none;
   color: #fff;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 12px 30px;
+  border-radius: 50px; /* Forma de píldora */
   cursor: pointer;
-  font-size: 14px;
-  transition: opacity 0.2s;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
 }
-button:hover { opacity: 0.85; }
 
+/* Efecto Hover: Elevar y brillar */
+button:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(108, 92, 231, 0.5);
+  background: var(--primary-dark);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Botón de Iniciar destacado */
+#btnStart {
+  background: linear-gradient(45deg, var(--primary), #00cec9);
+}
+
+/* --- GRID LAYOUT --- */
 main.grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 30px;
   padding: 20px;
   justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
+/* --- TARJETAS (Glassmorphism) --- */
 .card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  width: 350px;
-  min-height: 260px;
-  box-shadow: 0px 1px 3px rgba(0,0,0,0.08);
+  backdrop-filter: blur(10px); /* Efecto vidrio borroso detrás */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius);
+  padding: 30px;
+  width: 400px; /* Un poco más ancho */
+  min-height: 300px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-hover);
 }
 
 .card h2 {
-  margin: 0 0 12px;
-  font-size: 18px;
+  margin: 0 0 20px;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 5px;
+}
+
+/* --- CÁMARA --- */
+#webcam-container {
+  width: 100%;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  background: #000; /* Fondo negro mientras carga */
+  min-height: 240px; /* Evita colapso */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #webcam-container canvas {
   width: 100%;
-  border-radius: 8px;
+  display: block;
+}
+
+/* --- PREDICCIONES (ESTILO HUD) --- */
+#label-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 #label-container div {
-  margin-top: 6px;
-  font-size: 14px;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--border);
+  background: #f1f2f6;
+  padding: 12px 15px;
+  border-radius: 10px;
+  font-family: 'Courier New', Courier, monospace; /* Toque técnico */
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--primary-dark);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 5px solid var(--primary); /* Indicador visual */
+  transition: all 0.2s;
 }
 
-button:hover{
-  background: #ffffff;
-  color: rgb(51, 19, 138);
-  border:#551eae 2px solid;
-  transition: 0.5s;
+/* Efecto cuando una clase tiene alta probabilidad (opcional, requiere lógica JS para añadir clases, 
+   pero visualmente se ve bien así por defecto) */
+#label-container div:hover {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateX(5px);
 }
 
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  header h1 { font-size: 1.8rem; }
+  .card { width: 100%; }
+  nav { flex-direction: column; }
+}
