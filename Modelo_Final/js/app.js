@@ -1,3 +1,4 @@
+// Modelo_Final\js\app.js
 // TM + Arduino (Local) - app.js (FIX)
 // Requiere abrir con Live Server y tener ./tm_model/{model.json,metadata.json,weights.bin}
 
@@ -56,29 +57,66 @@ async function init() {
   }
 }
 
-async function loop() {
-  webcam.update();
-  await predict();
-  window.requestAnimationFrame(loop);
-}
-
-async function predict() {
-  const pred = await model.predict(webcam.canvas); // Array {className, probability}
-  let bestIdx = 0, bestProb = 0;
-
-  for (let i = 0; i < pred.length; i++) {
-    const p = pred[i];
-    labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
-    if (p.probability > bestProb) { bestProb = p.probability; bestIdx = i; }
+  async function loop() {
+    webcam.update();
+    await predict();
+    window.requestAnimationFrame(loop);
   }
 
-  if (bestProb > 0.80 && bestIdx !== lastClass) {
-    lastClass = bestIdx;
-    if (writer) {
-      const enc = new TextEncoder();
-      await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
+  async function predict() {
+    const pred = await model.predict(webcam.canvas); // Array {className, probability}
+    let bestIdx = 0, bestProb = 0;
+
+    for (let i = 0; i < pred.length; i++) {
+      const p = pred[i];
+      labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
+      if (p.probability > bestProb) { bestProb = p.probability; bestIdx = i; }
     }
-  }
+
+    if (bestProb > 0.80 && bestIdx !== lastClass) {
+      lastClass = bestIdx;
+      if (writer) {
+        const enc = new TextEncoder();
+        await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
+      }
+    }
+
+    // 1. CONFIGURACIÓN DE UMBRALES (Ajusta estos valores según tus pruebas)
+  // El orden debe coincidir con tus etiquetas: ["Vale", "Benja", "Alvaro", "NADA"]
+  // 0.85 = 85% de certeza necesaria para activar
+  const classThresholds = [0.99, 0.99, 0.99, 0.99];
+  async function predict() {
+    const pred = await model.predict(webcam.canvas);
+    let bestIdx = 0, bestProb = 0;
+
+    for (let i = 0; i < pred.length; i++) {
+      const p = pred[i];
+      // Actualiza el texto en pantalla
+      labelContainer.childNodes[i].innerHTML = `${p.className}: ${p.probability.toFixed(2)}`;
+      
+      // Buscamos la probabilidad más alta
+      if (p.probability > bestProb) { 
+          bestProb = p.probability; 
+          bestIdx = i; 
+      }
+    }
+
+    // 2. LÓGICA DE DETECCIÓN MEJORADA
+    // Verificamos si la probabilidad supera el umbral ESPECÍFICO de esa clase
+    // y si la clase es diferente a la última enviada.
+    if (bestProb > classThresholds[bestIdx] && bestIdx !== lastClass) {
+      
+      lastClass = bestIdx;
+      
+      if (writer) {
+        const enc = new TextEncoder();
+        // Enviamos el comando al Arduino
+        await writer.write(enc.encode(`CLASE:${bestIdx}\n`));
+        console.log(`Enviado Clase ${bestIdx} (${pred[bestIdx].className}) con certeza: ${bestProb}`);
+      }
+    }
+
+}
 }
 
 document.getElementById("btnStart").onclick = init;
