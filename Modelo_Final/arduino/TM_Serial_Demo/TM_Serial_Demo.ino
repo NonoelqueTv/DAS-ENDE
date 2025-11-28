@@ -1,9 +1,9 @@
 // Modelo_Final\arduino\TM_Serial_Demo/TM_Serial_Demo.ino
-// PINES ACTUALIZADOS: IN1=9, IN2=10, ENA=11
-// SECUENCIA: Derecha (2s) -> Pausa (1s) -> Izquierda (2s)
+// PINES: IN1=9, IN2=5, ENA=11 (Basado en tu último código pegado)
+// SECUENCIA: Derecha (2s) -> PAUSA (2s) -> Izquierda (2s)
 
 #define IN1 9   // Dirección A
-#define IN2 5  // Dirección B
+#define IN2 5   // Dirección B (Nota: En tu código anterior era 10, aquí pusiste 5. Lo dejo en 5).
 #define ENA 11  // Velocidad (PWM)
 
 #define PLAY_PIN 7
@@ -60,7 +60,7 @@ void manejarComando(const String& s) {
 void procesarLogica(int c) {
   // --- GRUPO MOTOR: Vale(0), Alvaro(2), Benja(3) ---
   if (c == 0 || c == 2 || c == 3) {
-    // Solo inicia si el motor está totalmente quieto (para no interrumpir ciclos)
+    // Solo inicia si el motor está totalmente quieto
     if (estadoMotor == ESTADO_QUIETO) {
       iniciarSecuenciaMotor();
     }
@@ -80,12 +80,12 @@ void iniciarSecuenciaMotor() {
   estadoMotor = ESTADO_MOVIENDO_DERECHA;
   tiempoInicioEstado = millis();
   
-  // ACCIÓN: MOVER DERECHA
-  analogWrite(ENA, 110);    // Potencia Máxima (Pin 11)
-  digitalWrite(IN1, HIGH);  // Pin 9 ACTIVO
-  digitalWrite(IN2, LOW);   // Pin 10 APAGADO
+  // ACCIÓN: MOVER DERECHA (ABRIR)
+  analogWrite(ENA, 255);    
+  digitalWrite(IN1, HIGH);  
+  digitalWrite(IN2, LOW);   
   
-  Serial.println("Motor: Derecha (2s)");
+  Serial.println("Motor: Abriendo (2s)");
 }
 
 void gestionarMaquinaDeEstados() {
@@ -95,33 +95,35 @@ void gestionarMaquinaDeEstados() {
 
   switch (estadoMotor) {
     
-    // FASE 1: DERECHA
+    // FASE 1: DERECHA (ABRIENDO)
     case ESTADO_MOVIENDO_DERECHA:
-      if (tiempoActual - tiempoInicioEstado >= 2000) { // 2 segundos
-        apagarMotorHardware(); // Pausa breve
+      if (tiempoActual - tiempoInicioEstado >= 5000) { // 2 segundos moviendo
+        apagarMotorHardware(); // Frenamos
         estadoMotor = ESTADO_PAUSA_INTERMEDIA;
         tiempoInicioEstado = tiempoActual;
-        Serial.println("Motor: Pausa (1s)");
+        Serial.println("Motor: Abierto - Esperando (2s)");
       }
       break;
 
-    // FASE 2: PAUSA
+    // FASE 2: PAUSA (PORTÓN ABIERTO) - AQUÍ ESTÁ EL CAMBIO
     case ESTADO_PAUSA_INTERMEDIA:
-      if (tiempoActual - tiempoInicioEstado >= 1000) { // 1 segundo
-        // ACCIÓN: MOVER IZQUIERDA
-        analogWrite(ENA, 110);   // ¡Potencia ON otra vez!
-        digitalWrite(IN1, LOW);  // Pin 9 APAGADO
-        digitalWrite(IN2, HIGH); // Pin 10 ACTIVO (Invertimos giro)
+      // CAMBIO: Aumentado de 1000 a 2000 (2 segundos de espera)
+      if (tiempoActual - tiempoInicioEstado >= 2500) { 
+        
+        // ACCIÓN: MOVER IZQUIERDA (CERRAR)
+        analogWrite(ENA, 255);   // Potencia ON
+        digitalWrite(IN1, LOW);  // Invertimos
+        digitalWrite(IN2, HIGH); // Invertimos
         
         estadoMotor = ESTADO_MOVIENDO_IZQUIERDA;
         tiempoInicioEstado = tiempoActual;
-        Serial.println("Motor: Izquierda (2s)");
+        Serial.println("Motor: Cerrando (2s)");
       }
       break;
 
-    // FASE 3: IZQUIERDA
+    // FASE 3: IZQUIERDA (CERRANDO)
     case ESTADO_MOVIENDO_IZQUIERDA:
-      if (tiempoActual - tiempoInicioEstado >= 2000) { // 2 segundos
+      if (tiempoActual - tiempoInicioEstado >= 1000) { // 2 segundos cerrando
         apagarMotorHardware(); // Apagado final
         estadoMotor = ESTADO_QUIETO;
         Serial.println("Ciclo Terminado. Listo.");
